@@ -1,0 +1,340 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.niekam.nieko">
+<head>
+
+    <title>Klientai</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">
+	
+<style>
+					
+		/* formos stilius */
+					
+	label, input { display:block; }
+	input.text { margin-bottom:12px; width:95%; padding: .4em; }
+	fieldset { padding:0; border:0; margin-top:25px; }
+	h1 { font-size: 1.2em; margin: .6em 0; }
+	div#users-contain { width: 350px; margin: 20px 0; }
+	div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+	div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+	.ui-dialog .ui-state-error { padding: .3em; }
+	.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			
+	.anuliuotas {
+		color: red;
+	}
+	
+	.redaguoti {
+		color: green;
+	}
+	
+	#ispejimas {
+		display: none;
+	}
+	
+	h1 {
+		font-size: 30px; 
+		text-align: center;
+	}
+	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" 
+	integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" 
+	crossorigin="anonymous">
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	
+<script>
+
+$(document).ready ( function() {
+
+	var id_klientas;
+		
+	pasiimtiKlientus()
+
+	function pasiimtiKlientus() {
+									
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/all_klientai" 
+														
+			})
+			
+		.done(	function( data ) {	
+			
+			res_str = '<table align="center">'
+				+ '<tr><th>ID</th><th>Vardas</th><th>Pavarde</th><th>Vartoja alkoholi</th><th>Alergiskas riesutams</th><th>Alergiskas pienui</th></tr>';
+									
+			for ( i = 0; i < data.length; i++) {
+				
+				alkoholis = 'ne';
+				
+				if (data[i].alkoholis == 1) {
+					
+					alkoholis = 'taip'
+				}
+				
+				riesutai = 'ne';
+				
+				if (data[i].riesutai == 1) {
+					
+					riesutai = 'taip'
+				}
+				
+				pienas = 'ne';
+				
+				if (data[i].pienas == 1) {
+					
+					pienas = 'taip'
+				}
+				
+				res_str += '<tr class="s'   + '"data-id="' + data [ i ].id 
+											+ '"data-vardas="' + data[i].vardas 
+											+ '"data-pavarde="' + data[i].pavarde 
+											+ '"data-alkoholis="' + data[i].alkoholis
+											+ '"data-riesutai="' + data[i].riesutai 
+											+ '"data-pienas="' + data[i].pienas + '" >'
+											
+						+ '<td>' + data [ i ].id + '</td>' 
+						+ '<td align="center">' + data [ i ].vardas + '</td>'
+						+ '<td align="center">' + data [ i ].pavarde + '</td>'
+						+ '<td align="center">' + alkoholis + '</td>'
+						+ '<td align="center">' + riesutai + '</td>'
+						+ '<td align="center">' + pienas + '</td>';
+				
+				res_str += '<td><a href="/uzsakymas?id=' + data [ i ].id  +'" class="s_sakos">Užsakymai</a></td>'
+				res_str += '<td><input type="button" class="redaguoti" value="Redaguoti"></td>'
+				res_str += '<td><input type="button" class="anuliuotas" value="Naikinti"></td>'
+				res_str += '</tr>';
+			}
+						
+			res_str += '</table>'
+			
+			$( '#klientai' ).html ( res_str );
+						
+			$( '.anuliuotas' ).on ( 'click', function() {
+						
+				id_klientas = $( this ).parent().parent().data( 'id' );
+				trintiKlienta(id_klientas);							
+			});
+			
+			$('.redaguoti').on ('click', function() {
+				
+				redaguotiKlienta.dialog( "open" );
+							
+				id_klientas = $( this ).parent().parent().data( 'id' );
+				$( '#varda' ).val ( $( this ).parent().parent().data( 'vardas' ) );
+				$( '#pavard' ).val ( $( this ).parent().parent().data( 'pavarde' ) );
+				$( '#alkoholi' ).prop ( 'checked', ( $( this ).parent().parent().data( 'alkoholis' )== 1 ? true : false ) );
+				$( '#riesuta' ).prop ( 'checked', ( $( this ).parent().parent().data( 'riesutai' )== 1 ? true : false ) );
+				$( '#piena' ).prop ( 'checked', ( $( this ).parent().parent().data( 'pienas' )== 1 ? true : false ) );
+						
+			});
+			
+		});
+	}
+
+	
+	
+	itraukti_klienta = $( "#dialog-naujas" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 380,
+		modal: true,
+		buttons: {
+        "Įtraukti": itrauktiNaujaKlienta,
+        Uždaryti: function() {
+			itraukti_klienta.dialog( "close" );
+        }
+		},
+	});	
+	
+	function itrauktiNaujaKlienta() {
+	
+		naujas = {
+				
+			vardas: $( '#vardas' ).val()
+			, pavarde: $( '#pavarde' ).val()
+			, alkoholis: ( $( '#alkoholis' ).prop( 'checked' ) ? 1 : 0 )
+			, riesutai: ( $( '#riesutai' ).prop('checked') ? 1 : 0 )
+			, pienas: ( $( '#pienas' ).prop('checked') ? 1 : 0 )			
+				
+		}
+			
+		params_str = 
+	
+			"vardas=" + naujas.vardas
+			+ "&pavarde="  + naujas.pavarde 
+			+ '&alkoholis=' + naujas.alkoholis 
+			+ '&riesutai=' + naujas.riesutai 
+			+ '&pienas=' + naujas.pienas 
+		
+								
+		$.ajax({
+				url: "http://localhost:8080/restfull/prideti_klienta?" + params_str
+		})
+		
+		.done( function( data ) {
+				
+			if (data =="not") {	
+			
+				$( "#ispejimas" ).dialog();
+			
+			}
+						
+			pasiimtiKlientus();
+			
+		});
+		
+		itraukti_klienta.dialog( "close" );
+	
+	}
+	
+	function trintiKlienta (id) {
+	
+		params_str = 'id=' + id;  
+		
+		$.ajax({
+			
+			url: "http://localhost:8080/restfull/trinti_klienta?" + params_str
+		})
+		
+		.done( function( data ) {
+				
+			pasiimtiKlientus();
+		
+		});
+	}
+	
+	redaguotiKlienta = $( "#dialog-redaguoti" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 400,
+		modal: true,
+		buttons: {
+        "Išsaugoti pakeitimus": edit_klienta,
+        Uždaryti: function() {
+         redaguotiKlienta.dialog( "close" );
+        }
+		},
+	});
+
+
+	function edit_klienta() {
+	
+		redaguotas = {
+			
+			vardas: $( '#varda' ).val()
+			, pavarde: $( '#pavard' ).val()
+			, alkoholis: ( $( '#alkoholi' ).prop( 'checked' ) ? 1 : 0 )
+			, riesutai: ( $( '#riesuta' ).prop('checked') ? 1 : 0 )
+			, pienas: ( $( '#piena' ).prop('checked') ? 1 : 0 )			
+				
+		}
+			
+		params_str = 
+	
+			"id=" + id_klientas
+			+ "&vardas=" + redaguotas.vardas
+			+ "&pavarde="  + redaguotas.pavarde 
+			+ '&alkoholis=' + redaguotas.alkoholis 
+			+ '&riesutai=' + redaguotas.riesutai 
+			+ '&pienas=' + redaguotas.pienas 
+		
+								
+		$.ajax({
+				url: "http://localhost:8080/restfull/redaguoti_klienta?" + params_str
+		})
+		
+		.done( function( data ) {
+				
+			pasiimtiKlientus();
+			
+		});
+		
+		redaguotiKlienta.dialog( "close" );
+	
+	}
+	
+	$( "#itraukti" ).on( "click", function() { 
+
+		itraukti_klienta.dialog( "open" ) 
+	
+	});
+
+});
+
+</script>
+</head>
+
+<body style="background-color:powderblue;">
+
+<h1> Klientų įtraukimo, bei redagavimo puslapis </h1>
+
+<a href="http://localhost:8080/meniu">Meniu</a>
+
+<div id="dialog-naujas" title="Įtraukti naują klientą">
+	<form>
+    <fieldset>
+	
+		<label for="vardas">Vardas</label>
+		<input type="text" name="vardas" id="vardas" value="vardas" class="text">
+	  
+		<label for="pavarde">Pavarde</label>
+		<input type="text" name="pavarde" id="pavarde" value="pavarde" class="text">
+	  
+		<label for="alkoholis">Vartoja alkoholį</label>
+		<input type="checkbox" name="alkoholis" id="alkoholis" value="alkoholis" class="text">
+	  
+		<label for="riesutai">Alergiškas riešutams</label>
+		<input type="checkbox" name="riesutai" id="riesutai" value="riesutai" class="text">
+	  
+		<label for="pienas">Alergiskas pieno produktams</label>
+		<input type="checkbox" name="pienas" id="pienas" value="pienas" class="text">
+					
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+    </fieldset>
+	</form>
+</div>
+	
+	
+<div id="ispejimas" title="Įspėjimas">
+  <p>Klaida! Naujas vartotojas nesukurtas. Toks vartotojas galbūt jau yra.</p>
+</div>	
+
+<div id="dialog-redaguoti" title="Redaguoti klientą">
+	<form>
+    <fieldset>
+	
+		<label for="varda">Vardas</label>
+		<input type="text" name="varda" id="varda" value="varda" class="text">
+	  
+		<label for="pavard">Pavardė</label>
+		<input type="text" name="pavard" id="pavard" value="pavard" class="text">
+	   
+		<label for="alkoholi">Vartoja alkoholį</label>
+		<input type="checkbox" name="alkoholi" id="alkoholi" value="alkoholi" class="text">
+	  
+		<label for="riesuta">Alergiškas riešutams</label>
+		<input type="checkbox" name="riesuta" id="riesuta" value="riesuta" class="text">
+	  
+		<label for="piena">Alergiskas pieno produktams</label>
+		<input type="checkbox" name="piena" id="piena" value="piena" class="text">
+			
+		<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+		
+    </fieldset>
+	</form>
+</div>
+
+<div id="klientai"></div>
+
+
+
+<p><label for="itraukti"></label><input class="itraukti" type="button" value="Įtraukti naują" id="itraukti" title="Įtraukti naują"></p>
+
+
+</body>
+</html>

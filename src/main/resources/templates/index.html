@@ -1,0 +1,234 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.niekam.nieko">
+<head>
+
+    <title>Klientai</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">
+	
+<style>
+					
+		/* formos stilius */
+					
+	label, input { display:block; }
+	input.text { margin-bottom:12px; width:95%; padding: .4em; }
+	fieldset { padding:0; border:0; margin-top:25px; }
+	h1 { font-size: 1.2em; margin: .6em 0; }
+	div#users-contain { width: 350px; margin: 20px 0; }
+	div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+	div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+	.ui-dialog .ui-state-error { padding: .3em; }
+	.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			
+	.anuliuotas {
+		color: red;
+	}
+	
+	.redaguoti {
+		color: green;
+	}
+	
+	#ispejimas, #ivedimo_ispejimas_vardas, #ivedimo_ispejimas_pavarde {
+		display: none;
+	}
+	
+	h1 {
+		font-size: 30px; 
+		text-align: center;
+	}
+	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" 
+	integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" 
+	crossorigin="anonymous">
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	
+<script>
+
+$(document).ready ( function() {
+
+	var id_klientas;
+		
+	pasiimtiKlientus()
+
+	function pasiimtiKlientus() {
+									
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/all_klientai" 
+														
+			})
+			
+		.done(	function( data ) {	
+			
+			res_str = '<table align="center">'
+				+ '<tr><th>Vardas</th></tr>';
+				
+			for ( i = 0; i < data.length; i++) {
+							
+				res_str += '<tr class="s'   + '"data-id="' + data [ i ].id 
+											+ '"data-vardas="' + data[i].vardas 
+											+ '"data-pavarde="' + data[i].pavarde 
+											+ '"data-alkoholis="' + data[i].alkoholis
+											+ '"data-riesutai="' + data[i].riesutai 
+											+ '"data-pienas="' + data[i].pienas + '" >'
+											
+						+ '<td align="center">' + data [ i ].vardas + '</td>';
+										
+				res_str += '<td><a href="/klientas?id=' + data [ i ].id  +'" class="s_sakos">Kliento informacija</a></td>'
+				res_str += '</tr>';
+			}
+						
+			res_str += '</table>';
+			
+			$( '#klientai' ).html ( res_str );
+					
+		});
+	}
+
+	
+	
+	itraukti_klienta = $( "#dialog-naujas" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 380,
+		modal: true,
+		buttons: {
+        "Įtraukti": itrauktiNaujaKlienta,
+        Uždaryti: function() {
+			itraukti_klienta.dialog( "close" );
+        }
+		},
+	});	
+	
+	function itrauktiNaujaKlienta() {
+	
+		naujas = {
+				
+			vardas: $( '#vardas' ).val()
+			, pavarde: $( '#pavarde' ).val()
+			, alkoholis: ( $( '#alkoholis' ).prop( 'checked' ) ? 1 : 0 )
+			, riesutai: ( $( '#riesutai' ).prop('checked') ? 1 : 0 )
+			, pienas: ( $( '#pienas' ).prop('checked') ? 1 : 0 )			
+				
+		}
+		
+			vardo_klaida = 0;
+			pavardes_klaida = 0;
+			
+		if (naujas.vardas == "") {
+		
+			$("#ivedimo_ispejimas_vardas").dialog();
+			vardo_klaida = 1;
+			
+		}
+		
+		if (naujas.pavarde == "") {
+		
+			$("#ivedimo_ispejimas_vardas").dialog();
+			pavardes_klaida = 1;
+		
+		}
+		
+		params_str = 
+	
+			"vardas=" + naujas.vardas
+			+ "&pavarde="  + naujas.pavarde 
+			+ '&alkoholis=' + naujas.alkoholis 
+			+ '&riesutai=' + naujas.riesutai 
+			+ '&pienas=' + naujas.pienas 
+		
+		if (vardo_klaida != 1 && pavardes_klaida != 1) {	
+		
+			$.ajax({
+				url: "http://localhost:8080/restfull/prideti_klienta?" + params_str
+			})
+		
+			.done( function( data ) {
+				
+				if (data =="not") {	
+			
+					$( "#ispejimas" ).dialog();
+			
+				}
+						
+				pasiimtiKlientus();
+			
+			});
+		
+			itraukti_klienta.dialog( "close" );
+		
+		} else {
+		
+			itraukti_klienta.dialog( "close" );
+		
+		}
+		
+	}
+		
+	$( "#itraukti" ).on( "click", function() { 
+
+		itraukti_klienta.dialog( "open" ); 
+	
+	});
+
+});
+
+</script>
+</head>
+
+<body style="background-color:powderblue;">
+
+<h1> Pagrindinis vaizdas </h1>
+
+<a href="http://localhost:8080/meniu">Restorano meniu</a>
+
+
+<div id="dialog-naujas" title="Įtraukti naują klientą">
+	<form>
+    <fieldset>
+	
+		<label for="vardas">Vardas</label>
+		<input type="text" name="vardas" id="vardas" value="" class="text">
+	  
+		<label for="pavarde">Pavarde</label>
+		<input type="text" name="pavarde" id="pavarde" value="" class="text">
+	  
+		<label for="alkoholis">Vartoja alkoholį</label>
+		<input type="checkbox" name="alkoholis" id="alkoholis" value="alkoholis" class="text">
+	  
+		<label for="riesutai">Alergiškas riešutams</label>
+		<input type="checkbox" name="riesutai" id="riesutai" value="riesutai" class="text">
+	  
+		<label for="pienas">Alergiskas pieno produktams</label>
+		<input type="checkbox" name="pienas" id="pienas" value="pienas" class="text">
+					
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+    </fieldset>
+	</form>
+</div>
+	
+<div id="ivedimo_ispejimas_vardas" title="Klaida!">	
+	<p> Klaida! Neįvestas vartotojo vardas.</p>
+</div>
+
+<div id="ivedimo_ispejimas_pavarde" title="Klaida!">	
+	<p> Klaida! Neįvesta vartotojo pavardė.</p>
+</div>
+	
+<div id="ispejimas" title="Įspėjimas">
+  <p>Klaida! Naujas vartotojas nesukurtas. Toks vartotojas galbūt jau yra.</p>
+</div>	
+
+<div id="klientai"></div>
+
+<p><label for="itraukti"></label><input class="itraukti" type="button" value="Įtraukti naują" id="itraukti" title="Įtraukti naują klientą"></p>
+
+
+
+
+</body>
+</html>

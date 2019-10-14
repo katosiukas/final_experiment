@@ -1,0 +1,274 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.niekam.nieko">
+<head>
+
+    <title>Užsakymai</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">
+	
+<style>
+					
+		/* formos stilius */
+					
+	label, input { display:block; }
+	input.text { margin-bottom:12px; width:95%; padding: .4em; }
+	fieldset { padding:0; border:0; margin-top:25px; }
+	h1 { font-size: 1.2em; margin: .6em 0; }
+	div#users-contain { width: 350px; margin: 20px 0; }
+	div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+	div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+	.ui-dialog .ui-state-error { padding: .3em; }
+	.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			
+	.anuliuotas {
+		color: red;
+	}
+	
+	.redaguoti {
+		color: green;
+	}
+		
+	h1 {
+		font-size: 30px; 
+		text-align: center;
+	}	
+	
+	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" 
+	integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" 
+	crossorigin="anonymous">
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	
+<script>
+
+$(document).ready ( function() {
+
+	var id_uzsakymo;
+		
+	pasiimtiUzsakymus()
+
+	function pasiimtiUzsakymus() {
+									
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/all_uzsakymai" 
+														
+			})
+			
+		.done(	function( data ) {	
+			
+			res_str = '<table align="center">'
+				+ '<tr><th>ID</th><th>Patiekalo pavadinimas</th><th>Sudėtyje yra rieštų</th><th>Sudėtyje yra pieno produktų</th></tr>';
+									
+			for ( i = 0; i < data.length; i++) {
+												
+				riesutai = 'ne';
+				
+				if (data[i].yrariesutu == 1) {
+					
+					riesutai = 'taip'
+				}
+				
+				pienas = 'ne';
+				
+				if (data[i].yrapieno == 1) {
+					
+					pienas = 'taip'
+				}
+				
+				res_str += '<tr class="s'   + '"data-id="' + data [ i ].id 
+											+ '"data-pavadinimas="' + data[i].pavadinimas 
+											+ '"data-yrariesutu="' + data[i].yrariesutu 
+											+ '"data-yrapieno="' + data[i].yrapieno + '" >'
+											
+						+ '<td>' + data [ i ].id + '</td>' 
+						+ '<td align="center">' + data [ i ].pavadinimas + '</td>'
+						+ '<td align="center">' + riesutai + '</td>'
+						+ '<td align="center">' + pienas + '</td>';
+				
+				res_str += '<td><input type="button" class="redaguoti" value="Redaguoti"></td>'
+				res_str += '<td><input type="button" class="anuliuotas" value="Naikinti"></td>'
+				res_str += '</tr>';
+			}
+						
+			res_str += '</table>'
+			
+			$( '#patiekalai' ).html ( res_str );
+						
+			$( '.anuliuotas' ).on ( 'click', function() {
+						
+				id_patiekalo = $( this ).parent().parent().data( 'id' );
+				trintiPatiekala(id_patiekalo);							
+			});
+			
+			$('.redaguoti').on ('click', function() {
+				
+				redaguotiPatiekala.dialog( "open" );
+							
+				id_patiekalo = $( this ).parent().parent().data( 'id' );
+				$( '#pavadinima' ).val ( $( this ).parent().parent().data( 'pavadinimas' ) );
+				$( '#riesuta' ).prop ( 'checked', ( $( this ).parent().parent().data( 'yrariesutu' )== 1 ? true : false ) );
+				$( '#piena' ).prop ( 'checked', ( $( this ).parent().parent().data( 'yrapieno' )== 1 ? true : false ) );
+						
+			});
+			
+		});
+	}
+
+	
+	
+	itraukti_patiekala = $( "#dialog-naujas" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 380,
+		modal: true,
+		buttons: {
+        "Įtraukti": itrauktiNaujaPatiekala,
+        Uždaryti: function() {
+			itraukti_patiekala.dialog( "close" );
+        }
+		},
+	});	
+	
+	function itrauktiNaujaPatiekala() {
+	
+		naujas = {
+				
+			pavadinimas: $( '#pavadinimas' ).val()
+			, riesutai: ( $( '#riesutai' ).prop('checked') ? 1 : 0 )
+			, pienas: ( $( '#pienas' ).prop('checked') ? 1 : 0 )			
+				
+		}
+			
+		params_str = 
+	
+			"pavadinimas=" + naujas.pavadinimas
+			+ '&yrariesutu=' + naujas.riesutai 
+			+ '&yrapieno=' + naujas.pienas 
+		
+								
+		$.ajax({
+				url: "http://localhost:8080/restfull/prideti_patiekala?" + params_str
+		})
+		
+		.done( function( data ) {
+								
+			pasiimtiMeniu();
+			
+		});
+		
+		itraukti_patiekala.dialog( "close" );
+	
+	}
+	
+	function trintiPatiekala (id) {
+	
+		params_str = 'id=' + id;  
+		
+		$.ajax({
+			
+			url: "http://localhost:8080/restfull/trinti_patiekala?" + params_str
+		})
+		
+		.done( function( data ) {
+		
+			pasiimtiMeniu();
+		
+		});
+	}
+	
+	redaguotiPatiekala = $( "#dialog-redaguoti" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 400,
+		modal: true,
+		buttons: {
+        "Išsaugoti pakeitimus": edit_patiekala,
+        Uždaryti: function() {
+         redaguotiPatiekala.dialog( "close" );
+        }
+		},
+	});
+
+
+	function edit_patiekala() {
+	
+		redaguotas = {
+			
+			pavadinimas: $( '#pavadinima' ).val()
+			, riesutai: ( $( '#riesuta' ).prop('checked') ? 1 : 0 )
+			, pienas: ( $( '#piena' ).prop('checked') ? 1 : 0 )		
+				
+		}
+			
+		params_str = 
+	
+			"id=" + id_patiekalo
+			+ "&pavadinimas=" + redaguotas.pavadinimas
+			+ '&yrariesutu=' + redaguotas.riesutai 
+			+ '&yrapieno=' + redaguotas.pienas
+		
+								
+		$.ajax({
+				url: "http://localhost:8080/restfull/redaguoti_patiekala?" + params_str
+		})
+		
+		.done( function( data ) {
+				
+			pasiimtiMeniu();
+			
+		});
+		
+		redaguotiPatiekala.dialog( "close" );
+	
+	}
+	
+	$( "#itraukti" ).on( "click", function() { 
+
+		itraukti_patiekala.dialog( "open" ) 
+	
+	});
+
+});
+
+</script>
+</head>
+
+<body style="background-color:powderblue;">
+
+<h1> Klientų užsakymų puslapis </h1>
+
+<a href="http://localhost:8080/klientas">Klientai</a>
+<a href="http://localhost:8080/meniu">Meniu</a>
+
+<div id="dialog-naujas" title="Įtraukti naują užsakymą">
+	<form>
+    <fieldset>
+	
+		<label for="pavadinimas">Pavadinimas</label>
+		<input type="text" name="pavadinimas" id="pavadinimas" value="" class="text">
+	  	  
+		<label for="riesutai">Sudėtyje yra rieštų</label>
+		<input type="checkbox" name="riesutai" id="riesutai" value="" class="text">
+	  
+		<label for="pienas">Sudėtyje yra pieno</label>
+		<input type="checkbox" name="pienas" id="pienas" value="" class="text">
+					
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+    </fieldset>
+	</form>
+</div>
+
+<div id="uzsakymai"></div>
+
+
+
+<p><label for="itraukti"></label><input class="itraukti" type="button" value="Įtraukti naują" id="itraukti" title="Įtraukti naują"></p>
+
+
+</body>
+</html>

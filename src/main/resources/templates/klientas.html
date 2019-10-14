@@ -1,0 +1,302 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.niekam.nieko">
+<head>
+
+    <title>Klientai</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">
+	
+<style>
+					
+		/* formos stilius */
+					
+	label, input { display:block; }
+	input.text { margin-bottom:12px; width:95%; padding: .4em; }
+	fieldset { padding:0; border:0; margin-top:25px; }
+	h1 { font-size: 1.2em; margin: .6em 0; }
+	div#users-contain { width: 350px; margin: 20px 0; }
+	div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+	div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+	.ui-dialog .ui-state-error { padding: .3em; }
+	.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			
+	.anuliuotas {
+		color: red;
+	}
+	
+	.redaguoti {
+		color: green;
+	}
+	
+	#ispejimas {
+		display: none;
+	}
+	
+	h1 {
+		font-size: 30px; 
+		text-align: center;
+	}
+	
+	tr.border_bottom td {
+		border:1pt solid black;
+	}
+	
+	.pabraukimas {
+	
+		text-decoration:underline;
+	
+	}
+	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" 
+	integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" 
+	crossorigin="anonymous">
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	
+<script>
+
+$(document).ready ( function() {
+
+	var id = 0;
+	var data_meniu;
+	var alergija_pienas = 0;
+	var alergija_riesutai = 0;
+			
+	searchParams = new URLSearchParams(window.location.search);
+		
+		if ( searchParams.has( 'id' )  ) {
+		
+			id = searchParams.get( 'id' )
+		}
+	
+	pasiimtiKlienta()
+
+	function pasiimtiKlienta() {
+									
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/klientas?id=" + id 
+														
+			})
+			
+		.done(	function( data ) {	
+		
+			res_str = '<table align="center" border="1">'
+				+ '<tr><th>Vardas</th><th>Pavarde</th><th>Vartoja alkoholi</th><th>Alergiskas riesutams</th><th>Alergiskas pienui</th></tr>';
+									
+				alkoholis = 'ne';
+				
+				if (data.klientas.alkoholis == 1) {
+					
+					alkoholis = 'taip'
+				}
+				
+				riesutai = 'ne';
+				
+				if (data.klientas.riesutai == 1) {
+					
+					riesutai = 'taip'
+					alergija_riesutai = 1;
+				}
+				
+				pienas = 'ne';
+				
+				if (data.klientas.pienas == 1) {
+					
+					pienas = 'taip'
+					alergija_pienas = 1;
+				}
+				
+				res_str += '<tr class="s'   + '"data-id="' + data.klientas.id 
+											+ '"data-vardas="' + data.klientas.vardas 
+											+ '"data-pavarde="' + data.klientas.pavarde 
+											+ '"data-alkoholis="' + data.klientas.alkoholis
+											+ '"data-riesutai="' + data.klientas.riesutai 
+											+ '"data-pienas="' + data.klientas.pienas + '" >'
+											
+						+ '<td align="center">' + data.klientas.vardas + '</td>'
+						+ '<td align="center">' + data.klientas.pavarde + '</td>'
+						+ '<td align="center">' + alkoholis + '</td>'
+						+ '<td align="center">' + riesutai + '</td>'
+						+ '<td align="center">' + pienas + '</td>';
+				
+				res_str += '<td><input type="button" class="uzsakymas" value="Užsakymo registravimas"></td>'
+				res_str += '</tr>';
+			
+						
+			res_str += '</table>'
+			
+			res_str += '<table align="center"><tr><th>Kliento užsakymai:</th></tr>';
+			
+			for (i = 0; i < data.klientas.uzsakymai.length; i++) {
+			
+				res_str += '<tr class="border_bottom"><td align="center">' + data.klientas.uzsakymai[i].meniu.pavadinimas + '</td>'
+								
+			}
+			
+			res_str += '</tr></table>';
+			
+			res_str += '<table align="center"><tr><th>Rekomendacijos klientui:</th></tr>';
+			
+			siulom_vyno = "";
+						
+			if (data.klientas.alkoholis == 1) {
+			
+				siulom_vyno = "Pasiūlyti klientui taurę vyno";
+			
+			}
+			
+			megstamiausias = "Klientas dar neturėjo užsakymų.";
+			reciausias = "Klientas dar neturėjo užsakymų.";
+			
+			if (typeof data.klientopatiekalai === 'undefined') {
+			
+				megstamiausias = data.klientopatiekalai[0][1];
+			
+			}
+			
+			if (typeof data.klientopatiekalai === 'undefined') {
+			
+				reciausias = data.klientopatiekalai[1][1];
+			
+			}
+			
+			res_str += '<tr><td>Pasiūlyti klientui jo mėgstamiausią patiekalą:  <span class="pabraukimas">' + megstamiausias + '</span></td></tr>';
+			res_str += '<tr><td>Pasiūlyti klientui jo rečiausiai užsakomą arba nei karto neužsakytą patiekalą:  <span class="pabraukimas">' + reciausias + '</span></td></tr>';
+			
+			res_str += '<tr><td>' + siulom_vyno + '</td></tr></table>';
+			
+			$( '#klientai' ).html ( res_str );
+						
+			$( '.uzsakymas' ).on ( 'click', function() {
+						
+				pasiimtiPatiekaluSarasa();
+											
+			});
+								
+		});
+	}
+	
+	$( "#itraukti" ).on( "click", function() { 
+	
+		pasiimtiPatiekaluSarasa(); 
+	
+	});
+	
+	function pasiimtiPatiekaluSarasa() {
+	
+		$( 'select#dropdown' ).html('');
+	
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/all_meniu" 
+														
+			})
+			
+		.done(	function( data ) {	
+		
+			data_meniu = data;
+		
+			for ( i = 0; i < data.length; i++) {
+	
+				$( 'select#dropdown' ).append(  '<option value="' + data [ i ].id + '">' + data [ i ].pavadinimas + '</option>');
+			}
+		
+		});
+		
+		pridetiPatiekala.dialog( "open" );
+	}
+
+	pridetiPatiekala = $( "#dialog-prideti" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 380,
+		modal: true,
+		buttons: {
+        "Įtraukti": add_patiekalas,
+        Uždaryti: function() {
+         pridetiPatiekala.dialog( "close" );
+        }
+		},
+	});
+	
+	function add_patiekalas() {
+	
+		patiekalas = parseInt( $( '#dropdown' ).val() );
+		
+		params_str = "kliento_id=" + id + "&patiekalo_id=" + patiekalas;
+		
+		for (i=0; i < data_meniu.length; i++) {
+			
+			if (data_meniu[i].id == patiekalas) {
+	
+				riesutai = data_meniu[i].yrariesutu;
+				pienas = data_meniu[i].yrapieno;
+			
+			}
+		}	
+				
+		if (alergija_riesutai == 1 && riesutai == 1) {
+			
+			alert('Klientas alergiškas riešutams!');
+			
+			params_str= ' ';
+		
+		} 
+
+		if ( alergija_pienas == 1 && pienas == 1) {
+			
+			alert('Klientas alergiškas pieno produktams!');
+			
+			params_str= ' ';
+		
+		} 
+		
+		
+		$.ajax({
+			
+			url: "http://localhost:8080/restfull/prideti_uzsakyma?" + params_str
+		
+			})
+		.done (function ( data) {
+		
+			pasiimtiKlienta();
+		
+		});
+		
+		pridetiPatiekala.dialog("close");
+	
+	}
+
+});
+
+</script>
+</head>
+
+<body style="background-color:powderblue;">
+
+<a href="http://localhost:8080/meniu">Restorano meniu</a>
+
+<h1> Kliento informacijos peržiūros vaizdas </h1>
+
+<div id="dialog-prideti" title="Redaguoti nary">
+	<form>
+    <fieldset>
+			
+		<label for="dropdown">Pasirinkite patiekalą:</label>
+		<select name="patiekalas" id="dropdown">
+			<option value=""></option>
+		</select>
+		
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+    </fieldset>
+	</form>
+</div>
+
+<div id="klientai"></div>
+
+</body>
+</html>
